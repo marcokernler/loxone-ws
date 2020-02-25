@@ -1,4 +1,4 @@
-module github.com/XciD/loxone-ws
+module github.com/marcokernler/loxone-ws
 
 go 1.12
 
