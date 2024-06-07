@@ -1,7 +1,9 @@
 package loxone
 
 import (
+	log "github.com/sirupsen/logrus"
 	"testing"
+	"time"
 )
 
 func TestEncodeCommand(t *testing.T) {
@@ -26,7 +28,7 @@ func TestEncryptation_HashUser(t *testing.T) {
 		salt: "d93b",
 	}
 
-	encoded := encrypt.hashUser("user", "test", "31333338623266642D303135342D363463392D66666666353034663934313032343764", "46324345453737334642443534343439313744394535313539443642424436373144323532423246")
+	encoded := encrypt.hashUser("user", "test", "31333338623266642D303135342D363463392D66666666353034663934313032343764", "46324345453737334642443534343439313744394535313539443642424436373144323532423246", SHA1)
 
 	if encoded != "fe64ac92e98486eed980a8a03401ee175bbd51d3" {
 		t.Errorf("Error, hash user password doest not match: result %s", encoded)
@@ -37,7 +39,7 @@ func TestDeserializeLoxoneResponse(t *testing.T) {
 	json := []byte(`{"LL": {"value": "ok", "code": "200", "control": "test"}}`)
 
 	result := &SimpleValue{}
-	body, _ := deserializeLoxoneResponse(&json, result)
+	body, _ := deserializeLoxoneResponse(json, result)
 
 	if result.Value != "ok" {
 		t.Errorf("Error during value deserilization")
@@ -54,7 +56,7 @@ func TestDeserializeLoxoneResponse(t *testing.T) {
 	json = []byte(`{"LL": {"value": {"key": "ontTimeSalt", "Salt": "Salt"}, "code": 200, "control": "test"}}`)
 
 	resultSalt := &salt{}
-	body, _ = deserializeLoxoneResponse(&json, resultSalt)
+	body, _ = deserializeLoxoneResponse(json, resultSalt)
 
 	if resultSalt.Salt != "Salt" {
 		t.Errorf("Error during Salt value deserilization")
@@ -173,4 +175,58 @@ func CreateConfig() *Config {
 		},
 	}
 	return cfg
+}
+
+func ExampleNew() {
+	// create a new connection to 1.2.3.4 using the default port 80 with the username 'admin' and password 'admin'
+	// auto reconnect will be enabled with a timeout of 30 seconds
+	lox, err := New(WithHost("1.2.3.4"), WithUsernameAndPassword("admin", "admin"))
+	if err != nil {
+		panic(err)
+	}
+
+	// register for events so we get sent updates for values
+	err = lox.RegisterEvents()
+	if err != nil {
+		panic(err)
+	}
+
+	// loop the events channel
+	for event := range lox.GetEvents() {
+		log.Infof("%s: %.2f", event.UUID, event.Value)
+	}
+}
+
+func ExampleNew_complex() {
+	// create a new connection to 1.2.3.4 using a custom port 7777 with the username 'admin' and password 'admin',
+	// automatically register for events when connected and adjust the reconnect timeout to 15 seconds.
+	lox, err := New(WithHost("1.2.3.4"), WithPort(7777), WithUsernameAndPassword("admin", "admin"), WithRegisterEvents(), WithReconnectTimeout(15*time.Second))
+	if err != nil {
+		panic(err)
+	}
+
+	// loop the events channel
+	for event := range lox.GetEvents() {
+		log.Infof("%s: %.2f", event.UUID, event.Value)
+	}
+}
+
+func ExampleNew_cloudDNS() {
+	// gets the connection details from Loxone Cloud DNS for the specified Miniserver MAC and connects with the
+	// username 'admin' and password 'admin' auto reconnect will be enabled with a timeout of 30 seconds
+	lox, err := New(WithCloudDNS("504f94a00000"), WithUsernameAndPassword("admin", "admin"))
+	if err != nil {
+		panic(err)
+	}
+
+	// register for events so we get sent updates for values
+	err = lox.RegisterEvents()
+	if err != nil {
+		panic(err)
+	}
+
+	// loop the events channel
+	for event := range lox.GetEvents() {
+		log.Infof("%s: %.2f", event.UUID, event.Value)
+	}
 }

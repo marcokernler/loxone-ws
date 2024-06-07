@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1" // #nosec
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
@@ -18,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// bytesToPublicKey bytes to public key
+// BytesToPublicKey convert Miniserver formatted PEM to rsa public key object
 func BytesToPublicKey(pub string) (*rsa.PublicKey, error) {
 	pub = strings.Replace(pub, "-----BEGIN CERTIFICATE-----", "-----BEGIN CERTIFICATE-----\n", 1)
 	pub = strings.Replace(pub, "-----END CERTIFICATE-----", "\n-----END CERTIFICATE-----", 1)
@@ -51,6 +52,16 @@ func BytesToPublicKey(pub string) (*rsa.PublicKey, error) {
 }
 
 func ComputeHmac256(message string, secret string) string {
+	key, _ := hex.DecodeString(secret)
+	h := hmac.New(sha256.New, key)
+	_, err := h.Write([]byte(message))
+	if err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func ComputeHmac1(message string, secret string) string {
 	key, _ := hex.DecodeString(secret)
 	h := hmac.New(sha1.New, key)
 	_, err := h.Write([]byte(message))
@@ -112,7 +123,7 @@ func unpad(data []byte, blockSize int) (output []byte, err error) {
 		paddingBytes++
 	}
 	if paddingBytes > blockSize || paddingBytes <= 0 {
-		return output, nil
+		return data, nil
 	}
 	output = data[0 : dataLen-paddingBytes]
 	return output, nil
@@ -147,5 +158,15 @@ func Sha1Hash(data string) string {
 	if err != nil {
 		panic(err)
 	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func Sha256Hash(data string) string {
+	h := sha256.New()
+	_, err := h.Write([]byte(data))
+	if err != nil {
+		panic(err)
+	}
+
 	return hex.EncodeToString(h.Sum(nil))
 }

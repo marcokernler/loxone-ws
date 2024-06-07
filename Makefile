@@ -1,10 +1,8 @@
-BUILD_DIR 		:= build
 
 .DEFAULT_GOAL := build
 
 .PHONY: init
 init:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
 	go get -u github.com/onsi/ginkgo/ginkgo
 	go get -u github.com/modocache/gover
 	go mod download
@@ -17,10 +15,10 @@ lint:
 test:
 	$(GOPATH)/bin/ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --progress --compilers=2
 
-.PHONY: format
-format:
-	go fmt $(go list)
+.PHONY: fmt
+fmt:
 	goimports -e -w -d $(shell find . -type f -name '*.go' -print)
+	gofmt -e -w -d $(shell find . -type f -name '*.go' -print)
 
 .PHONY: cover
 cover:
